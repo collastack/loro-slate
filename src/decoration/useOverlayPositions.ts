@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { type BaseRange } from "slate";
 import type { ReactEditor } from "slate-react";
 
@@ -61,8 +61,8 @@ export function useOverlayPositions<TContainer extends HTMLElement = HTMLDivElem
   editor: LoroPresenceEditorFull,
   containerRef: RefObject<TContainer | null>
 ): CursorOverlayData[] {
-  const [, rerender] = useReducer((s: number) => s + 1, 0);
   const animationFrameRef = useRef<number | null>(null);
+  const [, startTransition] = useTransition();
 
   const [cursors, setCursors] = useState<ResolvedCursor[]>(() => resolveCursors(editor));
 
@@ -77,20 +77,18 @@ export function useOverlayPositions<TContainer extends HTMLElement = HTMLDivElem
   const overlayCache = useRef(new WeakMap<BaseRange, OverlayPosition>());
   const [overlayPositions, setOverlayPositions] = useState<Record<string, OverlayPosition>>({});
 
-  // ResizeObserver: invalidate cache and re-render on container resize
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const observer = new ResizeObserver(() => {
       overlayCache.current = new WeakMap();
-      // Debounced re-render via rAF
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       animationFrameRef.current = requestAnimationFrame(() => {
         animationFrameRef.current = null;
-        rerender();
+        setCursors(resolveCursors(editor));
       });
     });
 
@@ -101,7 +99,7 @@ export function useOverlayPositions<TContainer extends HTMLElement = HTMLDivElem
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [containerRef]);
+  }, [containerRef, editor]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -109,8 +107,6 @@ export function useOverlayPositions<TContainer extends HTMLElement = HTMLDivElem
     const containerRect = containerRef.current.getBoundingClientRect();
     const xOffset = containerRect.x;
     const yOffset = containerRect.y - containerRef.current.scrollTop;
-
-    let changed = Object.keys(overlayPositions).length !== cursors.length;
 
     const updated: Record<string, OverlayPosition> = {};
     for (const cursor of cursors) {
@@ -123,13 +119,22 @@ export function useOverlayPositions<TContainer extends HTMLElement = HTMLDivElem
       const pos = getOverlayPosition(editor, cursor.range, { xOffset, yOffset });
       overlayCache.current.set(cursor.range, pos);
       updated[cursor.peer] = pos;
-      changed = true;
     }
 
-    if (changed) {
-      setOverlayPositions(updated);
-    }
-  });
+    startTransition(() => {
+      setOverlayPositions((prev) => {
+        const updatedKeys = Object.keys(updated);
+        const prevKeys = Object.keys(prev);
+        if (
+          updatedKeys.length === prevKeys.length &&
+          updatedKeys.every((k) => prev[k] === updated[k])
+        ) {
+          return prev;
+        }
+        return updated;
+      });
+    });
+  }, [containerRef, cursors, editor]);
 
   return useMemo(
     () =>
