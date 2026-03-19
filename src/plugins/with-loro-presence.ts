@@ -1,6 +1,7 @@
 import { Cursor, EphemeralStore, type LoroDoc } from "loro-crdt";
 import { getLoroText } from "../utils";
 import { type Editor, type BaseSelection, type Path } from "slate";
+import type { LoroEditor } from "./with-loro";
 
 // ────────────────────────────────────────────────────────────
 // Public types
@@ -21,13 +22,13 @@ export interface PresenceState {
 
 // Cursors are serialized to Uint8Array because Cursor objects
 // cannot be stored directly in EphemeralStore (which only accepts Value).
-type PresencePayload = {
+export type PresencePayload = {
   anchor: Uint8Array | null;
   focus: Uint8Array | null;
   user: CursorUser | null;
 };
 
-type PresenceMap = Record<string, PresencePayload>;
+export type PresenceMap = Record<string, PresencePayload>;
 
 // ────────────────────────────────────────────────────────────
 // Plugin interface
@@ -64,7 +65,7 @@ export interface LoroPresenceOptions {
 // Plugin
 // ────────────────────────────────────────────────────────────
 
-export function withLoroPresence<T extends Editor & { doc: LoroDoc }>(
+export function withLoroPresence<T extends LoroEditor & Editor>(
   e: T,
   options: LoroPresenceOptions
 ): T & LoroPresenceEditor {

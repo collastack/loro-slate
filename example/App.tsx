@@ -10,6 +10,7 @@ import {
   useLoroDecorate,
   wrapLoroRenderLeaf,
   CursorOverlay,
+  type PresenceMap,
 } from '../src/index.ts'
 import './types.ts'
 import { renderElement } from './renderElement.tsx'
@@ -330,8 +331,7 @@ function PeerEditor({
   doc: LoroDoc
   peerIdx: number
   peerKey: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  store: EphemeralStore<any>
+  store: EphemeralStore<PresenceMap>
   onLocalUpdate: (update: Uint8Array) => void
 }) {
   const editor = useMemo(
@@ -471,13 +471,10 @@ export function App() {
   })
 
   const [stores] = useState<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    readonly [EphemeralStore<any>, EphemeralStore<any>]
+    readonly [EphemeralStore<PresenceMap>, EphemeralStore<PresenceMap>]
   >(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const storeA = new EphemeralStore<any>()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const storeB = new EphemeralStore<any>()
+    const storeA = new EphemeralStore<PresenceMap>()
+    const storeB = new EphemeralStore<PresenceMap>()
     storeA.subscribeLocalUpdates((bytes: Uint8Array) => storeB.apply(bytes))
     storeB.subscribeLocalUpdates((bytes: Uint8Array) => storeA.apply(bytes))
     return [storeA, storeB] as const
