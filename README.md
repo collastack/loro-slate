@@ -6,11 +6,11 @@ A [Slate](https://docs.slatejs.org/) plugin that integrates [Loro CRDT](https://
 
 Slate's document tree is mirrored into a Loro document:
 
-| Slate | Loro |
-|---|---|
-| `Editor.children` | `LoroList` (root `"children"`) |
-| Element node | `LoroMap { type, children: LoroList, ... }` |
-| Text node | `LoroMap { text: LoroText, bold?, italic?, ... }` |
+| Slate             | Loro                                              |
+| ----------------- | ------------------------------------------------- |
+| `Editor.children` | `LoroList` (root `"children"`)                    |
+| Element node      | `LoroMap { type, children: LoroList, ... }`       |
+| Text node         | `LoroMap { text: LoroText, bold?, italic?, ... }` |
 
 Every local Slate operation is translated into a Loro mutation and committed. Remote Loro events (from other peers) are translated back into Slate operations and applied without re-triggering Loro writes.
 
@@ -23,13 +23,13 @@ npm install loro-slate loro-crdt slate slate-react
 ## Usage
 
 ```ts
-import { LoroDoc } from "loro-crdt";
-import { createEditor } from "slate";
-import { withReact } from "slate-react";
-import { withLoro, syncSlateValueToLoro, loroDocToSlateValue } from "loro-slate";
+import { LoroDoc } from 'loro-crdt'
+import { createEditor } from 'slate'
+import { withReact } from 'slate-react'
+import { withLoro, syncSlateValueToLoro, loroDocToSlateValue } from 'loro-slate'
 
-const doc = new LoroDoc();
-const editor = withLoro(withReact(createEditor()), { doc });
+const doc = new LoroDoc()
+const editor = withLoro(withReact(createEditor()), { doc })
 
 // Now you can init the doc data from remote snapshot or somewhere
 // doc.import(snapshot)
@@ -46,22 +46,19 @@ To sync between peers, forward `doc.subscribeLocalUpdates` bytes to remote peers
 ### Setup
 
 ```ts
-import { LoroDoc, EphemeralStore } from "loro-crdt";
-import { createEditor } from "slate";
-import { withReact } from "slate-react";
-import { withLoro, withLoroPresence } from "loro-slate";
+import { LoroDoc, EphemeralStore } from 'loro-crdt'
+import { createEditor } from 'slate'
+import { withReact } from 'slate-react'
+import { withLoro, withLoroPresence } from 'loro-slate'
 
-const doc = new LoroDoc();
-const store = new EphemeralStore();
+const doc = new LoroDoc()
+const store = new EphemeralStore()
 
-const editor = withLoroPresence(
-  withLoro(withReact(createEditor()), { doc }),
-  {
-    store,
-    key: doc.peerIdStr,          // stable unique ID for this peer
-    user: { name: "Alice", color: "#e74c3c" },
-  }
-);
+const editor = withLoroPresence(withLoro(withReact(createEditor()), { doc }), {
+  store,
+  key: doc.peerIdStr, // stable unique ID for this peer
+  user: { name: 'Alice', color: '#e74c3c' },
+})
 ```
 
 Forward the store's local updates to remote peers and import theirs:
@@ -69,13 +66,13 @@ Forward the store's local updates to remote peers and import theirs:
 ```ts
 // Send to remote peers
 store.subscribeLocalUpdates((bytes) => {
-  transport.send(bytes);
-});
+  transport.send(bytes)
+})
 
 // Receive from remote peers
 transport.onMessage((bytes) => {
-  store.import(bytes);
-});
+  store.import(bytes)
+})
 ```
 
 ### Rendering remote cursors (React)
@@ -83,23 +80,18 @@ transport.onMessage((bytes) => {
 Use the helpers exported from `loro-slate/decoration` (re-exported from `loro-slate`):
 
 ```tsx
-import { useLoroDecorate, wrapLoroRenderLeaf } from "loro-slate";
-import { Editable } from "slate-react";
+import { useLoroDecorate, wrapLoroRenderLeaf } from 'loro-slate'
+import { Editable } from 'slate-react'
 
 function MyEditor() {
-  const decorate = useLoroDecorate(editor);
+  const decorate = useLoroDecorate(editor)
 
   const renderLeaf = useCallback(
     wrapLoroRenderLeaf((props) => <DefaultLeaf {...props} />),
-    []
-  );
+    [],
+  )
 
-  return (
-    <Editable
-      decorate={decorate}
-      renderLeaf={renderLeaf}
-    />
-  );
+  return <Editable decorate={decorate} renderLeaf={renderLeaf} />
 }
 ```
 
@@ -108,15 +100,15 @@ function MyEditor() {
 ### Updating user metadata
 
 ```ts
-editor.presence.setUser({ name: "Bob", color: "#2980b9" });
+editor.presence.setUser({ name: 'Bob', color: '#2980b9' })
 ```
 
 ### Cleanup
 
 ```ts
 // On unmount / disconnect
-editor.presence.disconnect();
-editor.disconnect();
+editor.presence.disconnect()
+editor.disconnect()
 ```
 
 ## API
@@ -132,11 +124,11 @@ Wraps a Slate editor with Loro synchronization. Returns the editor extended with
 
 Adds presence awareness to an editor already wrapped with `withLoro`. Options:
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `store` | `EphemeralStore` | Shared store instance — the same object on every peer |
-| `key` | `string` | Stable unique ID for this peer (e.g. `doc.peerIdStr`) |
-| `user` | `{ name, color }` | Optional initial display name and cursor color |
+| Option  | Type              | Description                                           |
+| ------- | ----------------- | ----------------------------------------------------- |
+| `store` | `EphemeralStore`  | Shared store instance — the same object on every peer |
+| `key`   | `string`          | Stable unique ID for this peer (e.g. `doc.peerIdStr`) |
+| `user`  | `{ name, color }` | Optional initial display name and cursor color        |
 
 Returns the editor extended with `editor.presence`:
 
