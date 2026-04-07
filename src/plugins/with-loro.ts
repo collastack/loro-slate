@@ -82,7 +82,6 @@ export function withLoro<T extends Editor>(
   }
 
   const unsub = doc.subscribe((batch: LoroEventBatch) => {
-    console.debug('subscribe', batch)
     if (batch.by === 'local') return
 
     isRemote = true
@@ -254,18 +253,43 @@ function applyMoveNodeToLoro(
   const oldParentList = getLoroParentList(doc, op.path)
   oldParentList.delete(op.path[op.path.length - 1]!, 1)
 
-  const adjusted = adjustPathAfterRemoval(op.path, op.newPath)
-  const newParentList = getLoroParentList(doc, adjusted)
+  const targetPath = adjustPathForMove(op.path, op.newPath)
+  const newParentList = getLoroParentList(doc, targetPath)
   insertSlateNodeIntoLoroList(
     newParentList,
-    adjusted[adjusted.length - 1]!,
+    targetPath[targetPath.length - 1]!,
     nodeData,
   )
 }
 
 /**
+ * Check if two paths share the same parent (all elements except the last are equal).
+ */
+function isSameParentPath(path1: Path, path2: Path): boolean {
+  if (path1.length !== path2.length) return false
+  for (let i = 0; i < path1.length - 1; i++) {
+    if (path1[i] !== path2[i]) return false
+  }
+  return true
+}
+
+/**
+ * Adjust the target path for a move operation after the source node has been removed.
+ *
+ * For same-parent moves: Slate's newPath is the final position, no adjustment needed.
+ * For cross-parent moves: If the removal shifts the target's ancestor path, adjust it.
+ */
+function adjustPathForMove(removedPath: Path, targetPath: Path): Path {
+  if (isSameParentPath(removedPath, targetPath)) {
+    return targetPath
+  }
+  return adjustPathAfterRemoval(removedPath, targetPath)
+}
+
+/**
  * After removing the node at `removedPath`, compute where `targetPath`
  * ends up (indices may shift down by 1 at the divergence level).
+ * This is used for cross-parent moves where the removal affects the target's ancestor.
  */
 function adjustPathAfterRemoval(removedPath: Path, targetPath: Path): Path {
   const result = [...targetPath]
